@@ -1,0 +1,4 @@
+[submodule "aws-lc-rs"]
+	path = aws-lc-rs
+	url = https://github.com/aws/aws-lc-rs/
+	branch = kem
