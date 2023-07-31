@@ -3,9 +3,21 @@ use aws_lc_rs::{
     kem::{KemPrivateKey, KemPublicKey, KYBER768_R3},
 };
 use clap::Parser;
+use std::net::TcpListener;
+use std::thread;
+use std::io::Write;
 
 fn main() {
     println!("I am the Daemon!");
+
+    let listener = TcpListener::bind("127.0.0.1:443").unwrap();
+    println!("listening started, ready to accept");
+    for stream in listener.incoming() {
+        thread::spawn(|| {
+            let mut stream = stream.unwrap();
+            stream.write(b"Hello World\r\n").unwrap();
+        });
+    }
 }
 
 fn kyber_encaps(public_key_bytes: &[u8]) {
