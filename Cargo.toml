@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 aws-lc-rs = { version = "1.0", path = "./aws-lc-rs/aws-lc-rs" }
+clap = { version = "4.3.19", features = ["derive"] }
