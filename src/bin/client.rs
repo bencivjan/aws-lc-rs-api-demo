@@ -3,6 +3,9 @@ use aws_lc_rs::{
     kem::{KemPrivateKey, KemPublicKey, KYBER768_R3},
 };
 use clap::Parser;
+use std::net::TcpStream;
+use std::io::Read;
+use std::str;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
@@ -19,6 +22,20 @@ struct Args {
 fn main() {
     let args = Args::parse();
     println!("Address: {}", args.address);
+
+    match TcpStream::connect(format!("{}:8000", args.address)) {
+        Ok(mut stream) => {
+            println!("Successfully connected to the server!");
+            let mut buffer = [0u8; 11];
+
+            // read up to 10 bytes
+            let _n = stream.read(&mut buffer[..]).unwrap();
+            println!("n: {:?}", str::from_utf8(&buffer).unwrap());
+        }
+        Err(e) => {
+            eprintln!("Error: {}", e);
+        }
+    }
 }
 
 fn kyber_keygen() -> Result<KemPublicKey, Unspecified> {
