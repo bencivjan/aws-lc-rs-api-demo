@@ -6,6 +6,7 @@ use clap::Parser;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::str;
+use std::io;
 
 const KYBER768_R3_CIPHERTEXT_LENGTH: usize = 1088;
 const KYBER768_R3_PUBLIC_KEY_LENGTH: usize = 1184;
@@ -14,7 +15,7 @@ const KYBER768_R3_PUBLIC_KEY_LENGTH: usize = 1184;
 #[command(author, version, about)]
 struct Args {
     /// IP address of the server
-    #[arg(short, long)]
+    #[arg(short, long, default_value_t = String::from("127.0.0.1"))]
     address: String,
     /// Server port
     #[arg(short, long, default_value_t = 8000)]
@@ -26,7 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     println!("Address: {}", args.address);
 
-    let mut stream = TcpStream::connect(format!("{}:8000", args.address))?;
+    let mut stream = TcpStream::connect(format!("{}:{}", args.address, args.port))?;
 
     println!("Successfully connected to the server!");
 
@@ -36,11 +37,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut ct_buf = [0u8; KYBER768_R3_CIPHERTEXT_LENGTH];
 
     buffer.copy_from_slice(public_key.as_ref());
-    println!("{:x?}", buffer);
+    println!("Public key: {:x?}\n", buffer);
 
-    let _pk_num_bytes = stream.write(&buffer)?;
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
 
-    let _ct_num_bytes = stream.read(&mut ct_buf)?;
+    let pk_num_bytes = stream.write(&buffer)?;
+    println!("Number of public key bytes sent: {}", pk_num_bytes);
+
+    let ct_num_bytes = stream.read(&mut ct_buf)?;
+    println!(
+        "Received ciphertext!\nNumber of ciphertext bytes read: {}",
+        ct_num_bytes
+    );
+    println!("Ciphertext: {:x?}\n", ct_buf);
+
+    io::stdin().read_line(&mut input).expect("Failed to read line");
 
     let shared_secret = kyber_decaps(priv_key, &mut ct_buf)?;
 

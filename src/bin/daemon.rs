@@ -1,38 +1,54 @@
 use aws_lc_rs::{
     error::Unspecified,
-    kem::{KemPrivateKey, KemPublicKey, KYBER768_R3},
+    kem::{KemPublicKey, KYBER768_R3},
 };
 use clap::Parser;
 use std::io::{Read, Write};
 use std::net::TcpListener;
 use std::thread;
+use std::io;
 
 const KYBER768_R3_PUBLIC_KEY_LENGTH: usize = 1184;
 
-fn main() -> Result<(), std::io::Error> {
-    println!("I am the Daemon!");
+#[derive(Parser, Debug)]
+#[command(author, version, about)]
+struct Args {
+    /// Server port
+    #[arg(short, long, default_value_t = 8000)]
+    port: u64,
+}
 
-    let listener = TcpListener::bind("127.0.0.1:8000")?;
-    println!("listening started, ready to accept");
+fn main() -> Result<(), std::io::Error> {
+    let args = Args::parse();
+    let listener = TcpListener::bind("127.0.0.1:".to_string() + &args.port.to_string())?;
+    println!("Listening on port {}, ready to accept", args.port);
 
     for stream in listener.incoming() {
         thread::spawn(|| -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             let mut stream = stream?;
 
-            println!("Connection established");
+            println!("Connection established\n");
             let mut buffer = [0u8; KYBER768_R3_PUBLIC_KEY_LENGTH];
 
             println!(
-                "Number of public key bytes read: {}",
+                "Received public key!\nNumber of public key bytes read: {}",
                 stream.read(&mut buffer[..])?
             );
-            println!("Received public key: {:x?}", buffer);
+            println!("Public key: {:x?}\n", buffer);
 
+            let mut input = String::new();
+            io::stdin().read_line(&mut input).expect("Failed to read line");
+            
             let (ciphertext, shared_secret) = kyber_encaps(&buffer)?;
-            let _ct_num_bytes = stream.write(&ciphertext)?;
+            println!("Ciphertext: {:x?}", ciphertext);
+
+            io::stdin().read_line(&mut input).expect("Failed to read line");
+            let ct_num_bytes = stream.write(&ciphertext)?;
+
+            println!("Number of ciphertext bytes sent: {}", ct_num_bytes);
 
             println!();
-            println!("Shared secret: {:x?}", shared_secret);
+            println!("Shared secret: {:x?}\n", shared_secret);
             Ok(())
         });
     }
